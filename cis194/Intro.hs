@@ -1,4 +1,4 @@
-module Main where
+module Intro where
 
 -- Exercise 1
 toDigits :: Integer -> [Integer]
