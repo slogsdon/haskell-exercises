@@ -24,13 +24,13 @@ doubleEveryOther = double [] False
 
 -- Exercise 3
 sumDigits :: [Integer] -> Integer
-sumDigits = sum . concat . map toDigits
+sumDigits = sum . concatMap toDigits
 
 -- Exercise 4
 validate :: Integer -> Bool
-validate n = sum `mod` 10 == 0
+validate n = sum' `mod` 10 == 0
   where
-    sum = sumDigits $ doubleEveryOther $ toDigitsRev n
+    sum' = sumDigits $ doubleEveryOther $ toDigitsRev n
 
 -- Exercise 5
 type Peg = String
