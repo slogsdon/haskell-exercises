@@ -24,7 +24,9 @@ parseExpr :: Parser LispVal
 parseExpr = parseAtom
   <|> parseString
   <|> parseNumber
+  <|> parseQuasiQuoted
   <|> parseQuoted
+  <|> parseUnquoted
   <|> parseLists
 
 parseAtom :: Parser LispVal
@@ -67,6 +69,12 @@ parseLists = do
 parseNumber :: Parser LispVal
 parseNumber = liftM (Number . read) (many1 digit)
 
+parseQuasiQuoted :: Parser LispVal
+parseQuasiQuoted = do
+  _ <- char '`'
+  x <- parseExpr
+  return $ List [Atom "quasiquote", x]
+
 parseQuoted :: Parser LispVal
 parseQuoted = do
   _ <- char '\''
@@ -85,6 +93,12 @@ parseString = do
          <|> backslash)
   _ <- char '"'
   return $ String x
+
+parseUnquoted :: Parser LispVal
+parseUnquoted = do
+  _ <- char ','
+  x <- parseExpr
+  return $ List [Atom "unquote", x]
 
 readExpr :: String -> String
 readExpr input = case parse parseExpr "lisp" input of
