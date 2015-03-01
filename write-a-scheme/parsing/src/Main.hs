@@ -1,7 +1,9 @@
 module Main where
 
+import Control.Monad      (liftM)
 import Numeric            (readFloat)
 import System.Environment (getArgs)
+
 import Text.ParserCombinators.Parsec hiding (spaces)
 
 data LispVal = Atom String
@@ -22,6 +24,8 @@ parseExpr :: Parser LispVal
 parseExpr = parseAtom
   <|> parseString
   <|> parseNumber
+  <|> parseQuoted
+  <|> parseLists
 
 parseAtom :: Parser LispVal
 parseAtom = do
@@ -37,6 +41,12 @@ parseCharacter = do
   c <- letter
   return $ Character c
 
+parseDottedList :: Parser LispVal
+parseDottedList = do
+  head' <- endBy parseExpr spaces
+  tail' <- char '.' >> spaces >> parseExpr
+  return $ DottedList head' tail'
+
 parseFloat :: Parser LispVal
 parseFloat = do
   integral <- many1 digit
@@ -44,9 +54,24 @@ parseFloat = do
   fractional <- many1 digit
   return $ (Float . fst . head . readFloat) $ integral ++ "." ++ fractional
 
+parseList :: Parser LispVal
+parseList = liftM List $ sepBy parseExpr spaces
+
+parseLists :: Parser LispVal
+parseLists = do
+  _ <- char '('
+  x <- try parseList <|> parseDottedList
+  _ <- char ')'
+  return x
+
 parseNumber :: Parser LispVal
-parseNumber = do
-  (many1 digit) >>= (return . Number . read)
+parseNumber = liftM (Number . read) (many1 digit)
+
+parseQuoted :: Parser LispVal
+parseQuoted = do
+  _ <- char '\''
+  x <- parseExpr
+  return $ List [Atom "quote", x]
 
 parseString :: Parser LispVal
 parseString = do
