@@ -4,6 +4,7 @@ import Parser.Types.LispVal
 
 eval :: LispVal -> LispVal
 eval (List [Atom "quote", val]) = val
+eval (List [Atom f, val])       = maybe (Bool False) ($ val) $ lookup f symbols
 eval (List (Atom f : args))     = apply f $ map eval args
 eval val                        = val
 
@@ -18,34 +19,58 @@ primitives = [("+", numericBinop (+)),
               ("mod", numericBinop mod),
               ("quotient", numericBinop quot),
               ("remainder", numericBinop rem),
-              ("symbol?", isAtom),
+              ("symbol?", isSymbol),
               ("string?", isString),
               ("number?", isNumber)]
 
-numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
-numericBinop op params = Number $ foldl1 op $ map unpackNum params
+symbols :: [(String, LispVal -> LispVal)]
+symbols = [("symbol->string", symbolToString),
+           ("string->symbol", stringToSymbol)]
 
-unpackNum :: LispVal -> Integer
-unpackNum (Number n) = n
-unpackNum _          = 0
+--
+-- Symbolic Functions
+--
 
-isAtom :: [LispVal] -> LispVal
-isAtom vals = Bool $ foldl1 (&&) $ map isAtom' vals
+isSymbol :: [LispVal] -> LispVal
+isSymbol = Bool . all isAtom'
   where
     isAtom' :: LispVal -> Bool
     isAtom' (Atom _) = True
     isAtom' _        = False
 
+symbolToString :: LispVal -> LispVal
+symbolToString (Atom a) = String a
+symbolToString _        = String ""
+
+stringToSymbol :: LispVal -> LispVal
+stringToSymbol (String s) = Atom s
+stringToSymbol _          = Atom ""
+
+--
+-- String Functions
+--
+
 isString :: [LispVal] -> LispVal
-isString vals = Bool $ foldl1 (&&) $ map isString' vals
+isString = Bool . all isString'
   where
     isString' :: LispVal -> Bool
     isString' (String _) = True
     isString' _          = False
 
+--
+-- Numeric Functions
+--
+
 isNumber :: [LispVal] -> LispVal
-isNumber vals = Bool $ foldl1 (&&) $ map isNumber' vals
+isNumber = Bool . all isNumber'
   where
     isNumber' :: LispVal -> Bool
     isNumber' (Number _) = True
     isNumber' _          = False
+
+numericBinop :: (Integer -> Integer -> Integer) -> [LispVal] -> LispVal
+numericBinop op params = Number $ foldl1 op $ map unpackNum params
+  where
+    unpackNum :: LispVal -> Integer
+    unpackNum (Number n) = n
+    unpackNum _          = 0
